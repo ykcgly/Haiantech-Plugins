@@ -13,7 +13,9 @@ import org.bukkit.plugin.java.JavaPlugin;
  * 运行时及其脚本引擎。</p>
  *
  * <p>依赖策略与原 info.yml 的 pluginDepends 一致，均为软依赖：缺失仅提示，不阻断加载。
- * （原题中这部分插件仅作为配方可引用来源存在；若想恢复「缺失即卸载」的强约束，
+ * 另按 RSC 版 README 的「软前置」清单补全 Gastronomicon / SlimyTreeTaps，
+ * 与 plugin.yml 的 softdepend 保持同步（后者决定加载顺序，此处决定启动日志提示）。
+ * （这些插件仅作为配方可引用来源存在；若想恢复「缺失即卸载」的强约束，
  * 把它移入 {@link #HARD_DEPS} 即可。）</p>
  */
 public final class HaimanTechPlugin extends JavaPlugin implements SlimefunAddon {
@@ -27,6 +29,8 @@ public final class HaimanTechPlugin extends JavaPlugin implements SlimefunAddon 
             {"LiteXpansion", "LiteXpansion"},
             {"TranscEndence", "TranscEndence"},
             {"GuizhanLibPlugin", "鬼斩库"},
+            {"Gastronomicon", "美食家"},
+            {"SlimyTreeTaps", "粘液木龙头"},
     };
 
     /** 硬依赖；当前为必装 Slimefun。 */
@@ -40,7 +44,7 @@ public final class HaimanTechPlugin extends JavaPlugin implements SlimefunAddon 
         getLogger().info("=========================================================");
         getLogger().info("                 海曼科技院 开始加载（独立版）");
         getLogger().info("                   作者： haiman");
-        getLogger().info("                  当前版本：1.9.2");
+        getLogger().info("                  当前版本：1.10.0");
         getLogger().info("=========================================================");
 
         if (!checkDependencies()) return;
