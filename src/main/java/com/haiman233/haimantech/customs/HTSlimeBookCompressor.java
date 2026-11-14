@@ -55,9 +55,7 @@ public class HTSlimeBookCompressor extends SlimefunItem implements InventoryBloc
             new CustomItemStack(Material.WHITE_STAINED_GLASS_PANE, " ");
     private static final ItemStack BUTTON = new CustomItemStack(Material.LIME_STAINED_GLASS_PANE,
             "&a点击合成",
-            "&7在左侧 9 个槽位放入名称含 &bslimefun&7 / &b指南&7 的物品",
-            "&7每槽 1 份材料合成 1 个产物，多放多产",
-            "&7点我进行合成！");
+            "&7在左侧槽位放入slimefun指南书");
 
     public HTSlimeBookCompressor(ItemGroup group, SlimefunItemStack item) {
         super(group, item, RecipeType.ENHANCED_CRAFTING_TABLE, new ItemStack[] {

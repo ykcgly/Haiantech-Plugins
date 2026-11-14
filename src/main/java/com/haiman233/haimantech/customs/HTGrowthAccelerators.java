@@ -1,22 +1,19 @@
 package com.haiman233.haimantech.customs;
 
-import io.github.thebusybiscuit.slimefun4.api.MinecraftVersion;
+import com.xzavier0722.mc.plugin.slimefun4.storage.util.StorageCacheUtils;
 import io.github.thebusybiscuit.slimefun4.api.items.ItemGroup;
+import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItem;
 import io.github.thebusybiscuit.slimefun4.api.items.SlimefunItemStack;
 import io.github.thebusybiscuit.slimefun4.api.recipes.RecipeType;
-import io.github.thebusybiscuit.slimefun4.implementation.Slimefun;
-import io.github.thebusybiscuit.slimefun4.implementation.SlimefunItems;
 import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines.accelerators.AbstractGrowthAccelerator;
 import io.github.thebusybiscuit.slimefun4.implementation.items.electric.machines.accelerators.CropGrowthAccelerator;
-import io.github.thebusybiscuit.slimefun4.utils.SlimefunUtils;
+import io.github.thebusybiscuit.slimefun4.implementation.items.misc.OrganicFertilizer;
+import io.github.thebusybiscuit.slimefun4.implementation.items.misc.OrganicFood;
 import io.github.thebusybiscuit.slimefun4.utils.compatibility.VersionedParticle;
-import io.github.thebusybiscuit.slimefun4.utils.itemstack.ItemStackWrapper;
-import me.mrCookieSlime.Slimefun.api.BlockStorage;
 import me.mrCookieSlime.Slimefun.api.inventory.BlockMenu;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.type.Sapling;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -25,12 +22,30 @@ import org.bukkit.inventory.ItemStack;
 /**
  * 可配置参数的生长加速器（simple_machines.yml 的三种 accelerator 类型）。
  *
- * <p>原版 Slimefun 的动物/树木加速器参数为硬编码常量，RSC 为此封装了可配置版本，
- * 这里以同样的 tick 逻辑实现（镜像官方源码），参数来自 yml：</p>
- * <ul>
- *   <li>{@code capacity} 电容容量，{@code consumption} 每次加速耗电，{@code radius} 作用半径</li>
- *   <li>作物加速器另有 {@code speed}（每刻尝试加速的作物数语义由官方逻辑决定）</li>
- * </ul>
+ * <p>作物加速器直接继承官方 {@code CropGrowthAccelerator}：官方把它做成抽象类，
+ * 提供 {@code getEnergyConsumption() / getRadius() / getSpeed()} 供注入参数。</p>
+ *
+ * <p>动物/树木则不能这样复用。反编译 {@code Slimefun-f172239-Beta.jar} 可见，官方
+ * {@code AnimalGrowthAccelerator} / {@code TreeGrowthAccelerator} 把半径与耗电写成
+ * {@code private static final} 并内联进 {@code tick}（动物 3.0 格 / 14 J，树木 9 格 / 24 J），
+ * 仅 {@code getCapacity()} 可覆写。若直接继承官方类，yml 中「终极」机器的
+ * {@code radius: 16} / {@code consumption: 1000} 会静默失效。故这两个类型仍继承官方抽象的
+ * {@link AbstractGrowthAccelerator}，自行实现 tick（对齐官方语义）以保留可配参数：
+ * {@code capacity} 电容容量、{@code consumption} 每次加速耗电、{@code radius} 作用半径。</p>
+ *
+ * <p><b>耗材判定（关键，曾导致终极机器整机失效）</b>：{@code SlimefunItems.ORGANIC_FOOD} 与
+ * {@code SlimefunItems.FERTILIZER} 是展示用的<b>占位物品</b>（ID 为 ORGANIC_FOOD / FERTILIZER，
+ * lore 写「内含 ???」），玩家实际使用的是 11 种 {@code ORGANIC_FOOD_*} / {@code FERTILIZER_*}
+ * 变体，分别注册为 {@link OrganicFood} / {@link OrganicFertilizer} 的实例。此前用
+ * {@code isItemSimilar(slot, 占位物品)} 判定，永远匹配不上，tick 每刻空转。现与本体一致，改用
+ * {@code SlimefunItem.getByItem(item) instanceof OrganicFood / OrganicFertilizer} 按类匹配全部变体
+ * （{@code getByItem} 对 null / AIR 返回 null，安全）。</p>
+ *
+ * <p><b>26.x 兼容</b>：菜单统一走本体的 {@link StorageCacheUtils#getMenu(org.bukkit.Location)}
+ * （数据未加载时会主动 requestLoad），取代旧的 {@code BlockStorage.getInventory(Block)}。
+ * 树木加速器只走骨粉路径：1.21.x 与 26.x 均 &gt;= 1.17，旧版 {@code Sapling#setStage} 分支本就是
+ * 死代码；且若保留 {@code isAtLeast(MINECRAFT_1_17)}，当 Slimefun 未识别 26.x 版本号而返回
+ * {@code UNKNOWN} 时该判断恒为 false，会误走旧分支导致「只推进 stage、不真正催熟」。</p>
  */
 public final class HTGrowthAccelerators {
 
@@ -38,10 +53,8 @@ public final class HTGrowthAccelerators {
 
     // ---------------------------------------------------------------- 动物
 
-    /** 动物生长加速器：消耗有机食物（ORGANIC_FOOD）催熟周围的幼年生物。 */
+    /** 动物生长加速器：消耗任意有机食物变体，催熟周围的幼年生物。 */
     public static class Animal extends AbstractGrowthAccelerator {
-
-        private static final ItemStack ORGANIC_FOOD = ItemStackWrapper.wrap(SlimefunItems.ORGANIC_FOOD);
 
         private final int capacity;
         private final int consumption;
@@ -62,12 +75,12 @@ public final class HTGrowthAccelerators {
 
         @Override
         protected void tick(Block b) {
-            BlockMenu inv = BlockStorage.getInventory(b);
+            BlockMenu inv = StorageCacheUtils.getMenu(b.getLocation());
             if (inv == null) return;
 
             for (Entity n : b.getWorld().getNearbyEntities(b.getLocation(), radius, radius, radius, this::isReadyToGrow)) {
                 for (int slot : getInputSlots()) {
-                    if (!SlimefunUtils.isItemSimilar(inv.getItemInSlot(slot), ORGANIC_FOOD, false, false)) continue;
+                    if (!isOrganicFood(inv.getItemInSlot(slot))) continue;
                     if (getCharge(b.getLocation()) < consumption) return;
 
                     Ageable ageable = (Ageable) n;
@@ -83,6 +96,11 @@ public final class HTGrowthAccelerators {
             }
         }
 
+        /** 与本体 {@code AnimalGrowthAccelerator#isOrganicFood} 一致：按物品类匹配全部 11 种变体。 */
+        protected boolean isOrganicFood(ItemStack item) {
+            return SlimefunItem.getByItem(item) instanceof OrganicFood;
+        }
+
         private boolean isReadyToGrow(Entity n) {
             return n instanceof Ageable ageable && n.isValid() && !ageable.isAdult();
         }
@@ -90,10 +108,8 @@ public final class HTGrowthAccelerators {
 
     // ---------------------------------------------------------------- 树木
 
-    /** 树木生长加速器：消耗肥料（FERTILIZER）催熟周围的树苗（1.17+ 模拟骨粉）。 */
+    /** 树木生长加速器：消耗任意有机肥料变体，催熟周围的树苗（模拟骨粉）。 */
     public static class Tree extends AbstractGrowthAccelerator {
-
-        private static final ItemStack FERTILIZER = ItemStackWrapper.wrap(SlimefunItems.FERTILIZER);
 
         private final int capacity;
         private final int consumption;
@@ -114,7 +130,7 @@ public final class HTGrowthAccelerators {
 
         @Override
         protected void tick(Block b) {
-            BlockMenu inv = BlockStorage.getInventory(b);
+            BlockMenu inv = StorageCacheUtils.getMenu(b.getLocation());
             if (inv == null) return;
             if (getCharge(b.getLocation()) < consumption) return;
 
@@ -122,33 +138,14 @@ public final class HTGrowthAccelerators {
                 for (int z = -radius; z <= radius; z++) {
                     Block block = b.getRelative(x, 0, z);
                     if (!Tag.SAPLINGS.isTagged(block.getType())) continue;
-                    if (boost(b, inv, block)) return;
+                    if (applyBoneMeal(b, inv, block)) return;
                 }
             }
         }
 
-        private boolean boost(Block machine, BlockMenu inv, Block sapling) {
-            if (Slimefun.getMinecraftVersion().isAtLeast(MinecraftVersion.MINECRAFT_1_17)) {
-                return applyBoneMeal(machine, inv, sapling);
-            }
-            Sapling data = (Sapling) sapling.getBlockData();
-            if (data.getStage() >= data.getMaximumStage()) return false;
-            for (int slot : getInputSlots()) {
-                if (!SlimefunUtils.isItemSimilar(inv.getItemInSlot(slot), FERTILIZER, false, false)) continue;
-                removeCharge(machine.getLocation(), consumption);
-                data.setStage(data.getStage() + 1);
-                sapling.setBlockData(data, false);
-                inv.consumeItem(slot);
-                sapling.getWorld().spawnParticle(VersionedParticle.HAPPY_VILLAGER,
-                        sapling.getLocation().add(0.5D, 0.5D, 0.5D), 4, 0.1F, 0.1F, 0.1F);
-                return true;
-            }
-            return false;
-        }
-
         private boolean applyBoneMeal(Block machine, BlockMenu inv, Block sapling) {
             for (int slot : getInputSlots()) {
-                if (!SlimefunUtils.isItemSimilar(inv.getItemInSlot(slot), FERTILIZER, false, false)) continue;
+                if (!isFertilizer(inv.getItemInSlot(slot))) continue;
                 removeCharge(machine.getLocation(), consumption);
                 sapling.applyBoneMeal(BlockFace.UP);
                 inv.consumeItem(slot);
@@ -157,6 +154,11 @@ public final class HTGrowthAccelerators {
                 return true;
             }
             return false;
+        }
+
+        /** 与本体 {@code TreeGrowthAccelerator#isFertilizer} 一致：按物品类匹配全部 11 种变体。 */
+        protected boolean isFertilizer(ItemStack item) {
+            return SlimefunItem.getByItem(item) instanceof OrganicFertilizer;
         }
     }
 

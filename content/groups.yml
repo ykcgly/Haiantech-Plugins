@@ -130,7 +130,7 @@ slime_customizer_21:
   item:
     material_type: skull_hash
     material: ba5797a0a2859d427ddce293ba57f0c52c10f581db0800f6af786cd6a417bb61
-    name: '&6&l海曼科技院 &7- &c&l高版本机器'
+    name: '&6&l海曼科技院 &7- &c&l1.21版机器'
   parent: haimantech
 haiman_egg:
   lateInit: false

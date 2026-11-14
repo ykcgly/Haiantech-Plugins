@@ -1,6 +1,8 @@
 name: HaimanTech2
 version: 1.10.0-standalone
 main: com.haiman233.haimantech.HaimanTechPlugin
+# 保持 1.20：api-version 只设下限（服务端版本低于该值才拒绝加载），1.20 对 1.21.x 与 26.3 均有效。
+# 若改成 26.3，1.21.x 服务端会直接拒绝加载本插件，与「单 jar 双版本」策略冲突。
 api-version: '1.20'
 author: haiman233
 description: 海曼科技院（独立 Slimefun 附属，由 RSC 配置版改写而来）
