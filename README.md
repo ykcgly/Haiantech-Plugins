@@ -10,16 +10,16 @@
 ## 前置插件需求
 
 前置：
-- [Slimefun-粘液本体](https://builds.guizhanss.com/SlimefunGuguProject/Slimefun4/master)
-- [GuizhanLibPlugin-鬼斩前置库](https://builds.guizhanss.com/ybw0014/GuizhanLibPlugin/master)
-- [FoxyMachines-神秘科技](https://builds.guizhanss.com/SlimefunGuguProject/FoxyMachines/master)
-- [InfinityExpansion-无尽贪婪](https://builds.guizhanss.com/SlimefunGuguProject/InfinityExpansion/master)
-- [LiteXpansion-工业](https://builds.guizhanss.com/SlimefunGuguProject/LiteXpansion/master)
-- [TranscEndence-末地科技](https://builds.guizhanss.com/SlimefunGuguProject/TranscEndence/master)
+- [Slimefun-粘液本体](https://resources.guizhanss.com/plugin/Slimefun4)
+- [GuizhanLibPlugin-鬼斩前置库](https://resources.guizhanss.com/plugin/GuizhanLibPlugin)
+- [FoxyMachines-神秘科技](https://resources.guizhanss.com/plugin/FoxyMachines)
+- [InfinityExpansion-无尽贪婪](https://resources.guizhanss.com/plugin/InfinityExpansion)
+- [LiteXpansion-工业](https://resources.guizhanss.com/plugin/LiteXpansion)
+- [TranscEndence-末地科技](https://resources.guizhanss.com/plugin/TranscEndence)
 
 软前置：
-- [Gastronomicon-美食家](https://builds.guizhanss.com/SlimefunGuguProject/Gastronomicon/master)
-- [SlimyTreeTaps-粘液木龙头](https://builds.guizhanss.com/SlimefunGuguProject/SlimyTreeTaps/master)
+- [Gastronomicon-美食家 or **ExoticGardenComplex-复合花园**](https://resources.guizhanss.com/plugin/ExoticGardenComplex)
+- [SlimyTreeTaps-粘液木龙头](https://resources.guizhanss.com/plugin/SlimyTreeTaps)
 
 ## 公告
 
